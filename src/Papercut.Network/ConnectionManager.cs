@@ -1,7 +1,7 @@
 // Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ namespace Papercut.Network
     using System.Reactive.Linq;
     using System.Threading;
 
-    using Papercut.Core.Network;
+    using Papercut.Core.Domain.Network;
 
     using Serilog;
 
@@ -122,7 +122,7 @@ namespace Papercut.Network
                             foreach (int key in keys)
                             {
                                 // If they have been idle for too long, disconnect them
-                                if (DateTime.Now < _connections[key].LastActivity.AddMinutes(20))
+                                if (DateTime.Now > _connections[key].LastActivity.AddMinutes(20))
                                 {
                                     Logger.Information(
                                         "Session timeout, disconnecting {ConnectionId}",

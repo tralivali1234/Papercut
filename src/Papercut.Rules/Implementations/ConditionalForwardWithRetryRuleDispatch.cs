@@ -1,7 +1,7 @@
 // Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,9 +22,8 @@ namespace Papercut.Rules.Implementations
 
     using MimeKit;
 
-    using Papercut.Core.Helper;
-    using Papercut.Core.Message;
-    using Papercut.Core.Rules;
+    using Papercut.Core.Domain.Message;
+    using Papercut.Core.Domain.Rules;
     using Papercut.Message;
     using Papercut.Message.Helpers;
     using Papercut.Rules.Helpers;

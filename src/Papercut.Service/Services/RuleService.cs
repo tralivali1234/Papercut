@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,17 +22,19 @@ namespace Papercut.Service.Services
     using System.Threading;
     using System.Threading.Tasks;
 
-    using Papercut.Core.Events;
-    using Papercut.Core.Helper;
-    using Papercut.Core.Rules;
+    using Papercut.Common.Domain;
+    using Papercut.Common.Extensions;
+    using Papercut.Core.Domain.Message;
+    using Papercut.Core.Domain.Rules;
+    using Papercut.Core.Infrastructure.Lifecycle;
     using Papercut.Rules;
 
     using Serilog;
 
     public class RuleService : RuleServiceBase,
-        IHandleEvent<RulesUpdatedEvent>,
-        IHandleEvent<PapercutClientReadyEvent>,
-        IHandleEvent<NewMessageEvent>
+        IEventHandler<RulesUpdatedEvent>,
+        IEventHandler<PapercutClientReadyEvent>,
+        IEventHandler<NewMessageEvent>
     {
         readonly IRulesRunner _rulesRunner;
 

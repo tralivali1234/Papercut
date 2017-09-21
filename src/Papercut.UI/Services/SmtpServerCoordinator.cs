@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,9 +23,11 @@ namespace Papercut.Services
     using System.Reactive.Linq;
     using System.Runtime.CompilerServices;
 
+    using Papercut.Common.Domain;
     using Papercut.Core.Annotations;
-    using Papercut.Core.Events;
-    using Papercut.Core.Network;
+    using Papercut.Core.Domain.Network;
+    using Papercut.Core.Domain.Network.Smtp;
+    using Papercut.Core.Infrastructure.Lifecycle;
     using Papercut.Events;
     using Papercut.Network.Protocols;
     using Papercut.Network.Smtp;
@@ -33,14 +35,14 @@ namespace Papercut.Services
 
     using Serilog;
 
-    public class SmtpServerCoordinator : IHandleEvent<PapercutClientReadyEvent>,
-        IHandleEvent<PapercutClientExitEvent>,
-        IHandleEvent<SettingsUpdatedEvent>,
+    public class SmtpServerCoordinator : IEventHandler<PapercutClientReadyEvent>,
+        IEventHandler<PapercutClientExitEvent>,
+        IEventHandler<SettingsUpdatedEvent>,
         INotifyPropertyChanged
     {
         readonly ILogger _logger;
 
-        readonly IPublishEvent _publishEvent;
+        readonly IMessageBus _messageBus;
 
         readonly Func<ServerProtocolType, IServer> _serverFactory;
 
@@ -51,12 +53,12 @@ namespace Papercut.Services
         public SmtpServerCoordinator(
             Func<ServerProtocolType, IServer> serverFactory,
             ILogger logger,
-            IPublishEvent publishEvent)
+            IMessageBus messageBus)
         {
             _serverFactory = serverFactory;
             _smtpServer = new Lazy<IServer>(() => _serverFactory(ServerProtocolType.Smtp));
             _logger = logger;
-            _publishEvent = publishEvent;
+            this._messageBus = messageBus;
         }
 
         public bool SmtpServerEnabled
@@ -93,7 +95,10 @@ namespace Papercut.Services
 
         public void Handle(SettingsUpdatedEvent @event)
         {
-            if (SmtpServerEnabled) ListenSmtpServer();
+            if (!SmtpServerEnabled) return;
+            if (@event.PreviousSettings.IP == @event.NewSettings.IP && @event.PreviousSettings.Port == @event.NewSettings.Port) return;
+
+            ListenSmtpServer();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -115,10 +120,10 @@ namespace Papercut.Services
                             Settings.Default.IP,
                             Settings.Default.Port);
 
-                        _publishEvent.Publish(new SmtpServerBindFailedEvent());
+                        this._messageBus.Publish(new SmtpServerBindFailedEvent());
                     },
                     () =>
-                    _publishEvent.Publish(
+                    this._messageBus.Publish(
                         new SmtpServerBindEvent(Settings.Default.IP, Settings.Default.Port)));
         }
 

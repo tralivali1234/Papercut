@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,9 +19,10 @@ namespace Papercut.Services
 {
     using System.Windows;
 
-    using Papercut.Core.Events;
+    using Papercut.Common.Domain;
+    using Papercut.Core.Infrastructure.Lifecycle;
 
-    public class ShutdownService : IHandleEvent<AppForceShutdownEvent>
+    public class ShutdownService : IEventHandler<AppForceShutdownEvent>
     {
         public void Handle(AppForceShutdownEvent @event)
         {

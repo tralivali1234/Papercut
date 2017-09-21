@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,13 +20,14 @@ namespace Papercut.Services
     using System;
     using System.Threading;
 
-    using Papercut.Core.Events;
+    using Papercut.Common.Domain;
+    using Papercut.Core.Infrastructure.Lifecycle;
     using Papercut.Events;
     using Papercut.Network;
 
     using Serilog;
 
-    public class SingleInstanceService : IDisposable, IHandleEvent<PapercutClientPreStartEvent>
+    public class SingleInstanceService : IDisposable, IEventHandler<PapercutClientPreStartEvent>
     {
         readonly Mutex _appMutex = new Mutex(false, App.GlobalName);
 

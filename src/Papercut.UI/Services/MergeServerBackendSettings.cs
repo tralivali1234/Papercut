@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,22 +20,24 @@ namespace Papercut.Services
     using System;
     using System.Linq;
 
+    using Papercut.Common.Domain;
+    using Papercut.Common.Extensions;
     using Papercut.Core.Annotations;
-    using Papercut.Core.Configuration;
-    using Papercut.Core.Events;
+    using Papercut.Core.Domain.Paths;
+    using Papercut.Core.Infrastructure.Network;
     using Papercut.Events;
     using Papercut.Properties;
 
-    public class MergeServerBackendSettings : IHandleEvent<AppProcessExchangeEvent>
+    public class MergeServerBackendSettings : IEventHandler<AppProcessExchangeEvent>
     {
         readonly IMessagePathConfigurator _configurator;
 
-        readonly IPublishEvent _publishEvent;
+        readonly IMessageBus _messageBus;
 
-        public MergeServerBackendSettings(IMessagePathConfigurator configurator, IPublishEvent publishEvent)
+        public MergeServerBackendSettings(IMessagePathConfigurator configurator, IMessageBus messageBus)
         {
             _configurator = configurator;
-            _publishEvent = publishEvent;
+            this._messageBus = messageBus;
         }
 
         public void Handle([NotNull] AppProcessExchangeEvent @event)
@@ -49,17 +51,18 @@ namespace Papercut.Services
                 s => s.StartsWith(@event.MessageWritePath, StringComparison.OrdinalIgnoreCase)))
             {
                 // add it for watching...
-                Settings.Default.MessagePaths = string.Format("{0};{1}",
-                    Settings.Default.MessagePaths,
-                    @event.MessageWritePath);
+                Settings.Default.MessagePaths = $"{Settings.Default.MessagePaths};{@event.MessageWritePath}";
             }
+
+            var previousSettings = new Settings();
+            Settings.Default.CopyTo(previousSettings);
 
             // save ip:port bindings as our own to keep in sync...
             Settings.Default.IP = @event.IP;
             Settings.Default.Port = @event.Port;
             Settings.Default.Save();
 
-            _publishEvent.Publish(new SettingsUpdatedEvent());
+            this._messageBus.Publish(new SettingsUpdatedEvent(previousSettings));
         }
     }
 }

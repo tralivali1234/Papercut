@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,7 +32,9 @@ namespace Papercut.ViewModels
     using MahApps.Metro.Controls;
     using MahApps.Metro.Controls.Dialogs;
 
-    using Papercut.Core.Events;
+    using Papercut.Common.Domain;
+    using Papercut.Core.Domain.Network.Smtp;
+    using Papercut.Core.Infrastructure.Lifecycle;
     using Papercut.Events;
     using Papercut.Helpers;
     using Papercut.Properties;
@@ -54,7 +56,7 @@ namespace Papercut.ViewModels
 
         readonly LogClientSinkQueue _logClientSinkQueue;
 
-        readonly IPublishEvent _publishEvent;
+        readonly IMessageBus _messageBus;
 
         readonly AppResourceLocator _resourceLocator;
 
@@ -72,7 +74,7 @@ namespace Papercut.ViewModels
 
         public MainViewModel(
             IViewModelWindowManager viewModelWindowManager,
-            IPublishEvent publishEvent,
+            IMessageBus messageBus,
             ForwardRuleDispatch forwardRuleDispatch,
             Func<MessageListViewModel> messageListViewModelFactory,
             Func<MessageDetailViewModel> messageDetailViewModelFactory,
@@ -80,7 +82,7 @@ namespace Papercut.ViewModels
             AppResourceLocator resourceLocator)
         {
             _viewModelWindowManager = viewModelWindowManager;
-            _publishEvent = publishEvent;
+            this._messageBus = messageBus;
             _forwardRuleDispatch = forwardRuleDispatch;
 
             MessageListViewModel = messageListViewModelFactory();
@@ -203,9 +205,13 @@ namespace Papercut.ViewModels
         public IEnumerable<string> RenderLogEventParts(LogEvent e)
         {
             yield return $@"<div class=""logEntry {e.Level}"">";
-            yield return $@"<span class=""date"">{e.Timestamp.ToString("G")}</span>";
+            yield return $@"<span class=""date"">{e.Timestamp:G}</span>";
             yield return $@"[<span class=""errorLevel"">{e.Level}</span>]";
             yield return e.RenderMessage();
+            if (e.Exception != null)
+            {
+                yield return $@"<span class=""fatal"">Exception: {e.Exception.Message}</span>";
+            }
             yield return @"</div>";
         }
 
@@ -276,7 +282,7 @@ namespace Papercut.ViewModels
 
         public void Exit()
         {
-            _publishEvent.Publish(new AppForceShutdownEvent());
+            this._messageBus.Publish(new AppForceShutdownEvent());
         }
 
         public void ForwardSelected()
@@ -332,8 +338,11 @@ namespace Papercut.ViewModels
 
             _window.StateChanged += (sender, args) =>
             {
-                // Hide the window if minimized so it doesn't show up on the task bar
-                if (_window.WindowState == WindowState.Minimized) _window.Hide();
+                if (_window.WindowState == WindowState.Minimized && Settings.Default.MinimizeToTray)
+                {
+                    // Hide the window if minimized so it doesn't show up on the task bar
+                    _window.Hide();
+                }
             };
 
             _window.Closing += (sender, args) =>

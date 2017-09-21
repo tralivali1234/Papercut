@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,16 +21,17 @@ namespace Papercut.Services
     using System.Reactive.Concurrency;
     using System.Reactive.Linq;
 
-    using Papercut.Core.Events;
-    using Papercut.Core.Network;
+    using Papercut.Common.Domain;
+    using Papercut.Core.Domain.Network;
+    using Papercut.Core.Infrastructure.Lifecycle;
     using Papercut.Network;
     using Papercut.Network.Protocols;
     using Papercut.Network.Smtp;
 
     using Serilog;
 
-    public class PapercutClientServerCoordinator : IHandleEvent<PapercutClientReadyEvent>,
-        IHandleEvent<PapercutClientExitEvent>
+    public class PapercutClientServerCoordinator : IEventHandler<PapercutClientReadyEvent>,
+        IEventHandler<PapercutClientExitEvent>
     {
         readonly ILogger _logger;
 

@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,9 +20,11 @@ namespace Papercut.Network.Protocols
     using System;
     using System.IO;
 
-    using Papercut.Core.Events;
-    using Papercut.Core.Helper;
-    using Papercut.Core.Network;
+    using Papercut.Common.Domain;
+    using Papercut.Common.Extensions;
+    using Papercut.Core.Domain.Network;
+    using Papercut.Core.Infrastructure.Json;
+    using Papercut.Core.Infrastructure.MessageBus;
     using Papercut.Network.Helpers;
 
     using Serilog;
@@ -47,12 +49,12 @@ namespace Papercut.Network.Protocols
 
     public class PapercutProtocol : StringCommandProtocol
     {
-        readonly IPublishEvent _publishEvent;
+        readonly IMessageBus _messageBus;
 
-        public PapercutProtocol(ILogger logger, IPublishEvent publishEvent)
+        public PapercutProtocol(ILogger logger, IMessageBus messageBus)
             : base(logger)
         {
-            _publishEvent = publishEvent;
+            this._messageBus = messageBus;
         }
 
         public IConnection Connection { get; protected set; }
@@ -78,9 +80,9 @@ namespace Papercut.Network.Protocols
                 {
                     // read the rest of the object...
                     var @event = Connection.Client.ReadObj(request.Type, request.ByteSize);
-                    _logger.Information("Publishing Event Received {@Event} from Remote", @event);
+                    this._logger.Information("Publishing Event Received {@Event} from Remote", @event);
 
-                    _publishEvent.PublishObject(@event, request.Type);
+                    this._messageBus.PublishObject(@event, request.Type);
 
                     if (request.CommandType == ProtocolCommandType.Exchange)
                     {

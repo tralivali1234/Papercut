@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,11 +19,12 @@ namespace Papercut.Service.Services
 {
     using System.IO;
 
-    using Papercut.Core.Configuration;
-    using Papercut.Core.Events;
+    using Papercut.Common.Domain;
+    using Papercut.Core.Domain.Paths;
+    using Papercut.Core.Infrastructure.Network;
     using Papercut.Service.Helpers;
 
-    public class ReplyWithDefaultMessageSavePathService : IHandleEvent<AppProcessExchangeEvent>
+    public class ReplyWithDefaultMessageSavePathService : IEventHandler<AppProcessExchangeEvent>
     {
         readonly IMessagePathConfigurator _messagePathConfigurator;
 

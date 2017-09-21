@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,11 +23,13 @@ namespace Papercut.Helpers
     using System.Reactive.Concurrency;
     using System.Reactive.Linq;
 
-    using Papercut.Core.Events;
+    using Papercut.Common.Domain;
+    using Papercut.Core.Infrastructure.Logging;
 
+    using Serilog;
     using Serilog.Events;
 
-    public class LogClientSinkQueue : IHandleEvent<ConfigureLoggerEvent>
+    public class LogClientSinkQueue : IEventHandler<ConfigureLoggerEvent>
     {
         static readonly ConcurrentQueue<LogEvent> _logQueue = new ConcurrentQueue<LogEvent>();
 

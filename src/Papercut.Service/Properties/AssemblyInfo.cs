@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyProduct("Papercut.Service")]
 [assembly: AssemblyCompany("Papercut")]
-[assembly: AssemblyCopyright("Copyright © 2008 - 2014 Ken Robertson & Jaben Cargman")]
+[assembly: AssemblyCopyright("Copyright © 2008 - 2017 Ken Robertson & Jaben Cargman")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -52,5 +52,5 @@ using System.Runtime.InteropServices;
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
 
-[assembly: AssemblyVersion("4.5.0.0")]
-[assembly: AssemblyFileVersion("4.5.0.0")]
+[assembly: AssemblyVersion("5.0.0.0")]
+[assembly: AssemblyFileVersion("5.0.0.0")]

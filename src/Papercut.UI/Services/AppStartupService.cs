@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,43 +21,53 @@ namespace Papercut.Services
 
     using Microsoft.Win32;
 
-    using Papercut.Core.Events;
-    using Papercut.Core.Helper;
+    using Papercut.Common.Domain;
+    using Papercut.Common.Extensions;
     using Papercut.Events;
     using Papercut.Properties;
 
     using Serilog;
 
-    public class AppStartupService : IHandleEvent<SettingsUpdatedEvent>
+    public class AppStartupService : IEventHandler<SettingsUpdatedEvent>
     {
         const string AppStartupKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
 
         readonly ILogger _logger;
 
-        readonly IPublishEvent _publishEvent;
+        readonly IMessageBus _messageBus;
 
-        public AppStartupService(ILogger logger, IPublishEvent publishEvent)
+        public AppStartupService(ILogger logger, IMessageBus messageBus)
         {
             _logger = logger;
-            _publishEvent = publishEvent;
+            this._messageBus = messageBus;
         }
 
         public void Handle(SettingsUpdatedEvent @event)
         {
+            // check if the setting changed
+            if (@event.PreviousSettings.RunOnStartup == @event.NewSettings.RunOnStartup)
+                return;
+
             try
             {
                 RegistryKey registryKey = Registry.CurrentUser.OpenSubKey(AppStartupKey, true);
 
-                // is key currenctly set to this app executable?
-                bool runOnStartup = registryKey.GetValue(App.GlobalName, null).ToType<string>()
-                                    == App.ExecutablePath;
+                if (registryKey == null)
+                {
+                    this._logger.Error("Failure opening registry key {AppStartupKey}", AppStartupKey);
+                    return;
+                }
+
+                // is key currently set to this app executable?
+                bool runOnStartup = registryKey.GetValue(App.GlobalName, null)
+                                        .ToType<string>() == App.ExecutablePath;
 
                 if (Settings.Default.RunOnStartup && !runOnStartup)
                 {
                     // turn on..
                     _logger.Information(
                         "Setting AppStartup Registry {Key} to Run Papercut at {ExecutablePath}",
-                        string.Format("{0}\\{1}", AppStartupKey, App.GlobalName),
+                        $"{AppStartupKey}\\{App.GlobalName}",
                         App.ExecutablePath);
 
                     registryKey.SetValue(App.GlobalName, App.ExecutablePath);
@@ -67,7 +77,7 @@ namespace Papercut.Services
                     // turn off...
                     _logger.Information(
                         "Attempting to Delete AppStartup Registry {Key}",
-                        string.Format("{0}\\{1}", AppStartupKey, App.GlobalName));
+                        $"{AppStartupKey}\\{App.GlobalName}");
 
                     registryKey.DeleteValue(App.GlobalName, false);
                 }
@@ -75,7 +85,7 @@ namespace Papercut.Services
             catch (SecurityException ex)
             {
                 _logger.Error(ex, "Error Opening Registry for App Startup Service");
-                _publishEvent.Publish(
+                this._messageBus.Publish(
                     new ShowMessageEvent(
                         "Failed to set Papercut to load at startup due to lack of permission. To fix, exit and run Papercut again with elevated (Admin) permissions.",
                         "Failed"));

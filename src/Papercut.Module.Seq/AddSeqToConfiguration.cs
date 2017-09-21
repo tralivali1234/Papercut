@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,13 +17,14 @@
 
 namespace Papercut.Module.Seq
 {
-    using Papercut.Core.Events;
-    using Papercut.Core.Settings;
+    using Papercut.Common.Domain;
+    using Papercut.Core.Domain.Settings;
+    using Papercut.Core.Infrastructure.Logging;
 
     using Serilog;
     using Serilog.Events;
 
-    public class AddSeqToConfiguration : IHandleEvent<ConfigureLoggerEvent>
+    public class AddSeqToConfiguration : IEventHandler<ConfigureLoggerEvent>
     {
         readonly ISettingStore _settingStore;
 
@@ -36,8 +37,9 @@ namespace Papercut.Module.Seq
         {
             var seqEndPoint = _settingStore.Get("SeqEndpoint", "http://localhost:5341");
             var logLevel = _settingStore.Get<LogEventLevel>("SeqLogLevel", LogEventLevel.Verbose);
+            var apiKey = _settingStore.Get<string>("SeqApiKey", (string)null);
 
-            @event.LogConfiguration.WriteTo.Seq(seqEndPoint, logLevel);
+            @event.LogConfiguration.WriteTo.Seq(seqEndPoint, logLevel, apiKey: apiKey);
         }
     }
 }

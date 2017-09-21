@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,14 +20,18 @@ namespace Papercut.ViewModels
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
+    using System.ComponentModel;
     using System.Linq;
     using System.Net;
 
     using Caliburn.Micro;
 
-    using Papercut.Core.Events;
-    using Papercut.Core.Helper;
+    using Papercut.Common.Domain;
+    using Papercut.Common.Extensions;
+    using Papercut.Common.Helper;
+    using Papercut.Core.Infrastructure.Network;
     using Papercut.Events;
+    using Papercut.Helpers;
     using Papercut.Properties;
 
     public class OptionsViewModel : Screen
@@ -36,7 +40,7 @@ namespace Papercut.ViewModels
 
         static readonly Lazy<IList<string>> _ipList = new Lazy<IList<string>>(GetIPs);
 
-        readonly IPublishEvent _publishEvent;
+        readonly IMessageBus _messageBus;
 
         string _ip = "Any";
 
@@ -44,16 +48,24 @@ namespace Papercut.ViewModels
 
         int _port = 25;
 
+        string _messageListSortOrder = "Descending";
+
         bool _runOnStartup;
 
         bool _startMinimized;
 
         string _windowTitle = WindowTitleDefault;
 
-        public OptionsViewModel(IPublishEvent publishEvent)
+        private bool _minimizeToTray;
+
+        private string _theme;
+
+        public OptionsViewModel(IMessageBus messageBus)
         {
-            _publishEvent = publishEvent;
+            _messageBus = messageBus;
             IPs = new ObservableCollection<string>(_ipList.Value);
+            SortOrders = new ObservableCollection<string>(EnumHelpers.GetNames<ListSortDirection>());
+            Themes = new ObservableCollection<string>(EnumHelpers.GetNames<Themes>());
             Load();
         }
 
@@ -64,6 +76,29 @@ namespace Papercut.ViewModels
             {
                 _windowTitle = value;
                 NotifyOfPropertyChange(() => WindowTitle);
+            }
+        }
+
+        public string MessageListSortOrder
+        {
+            get { return this._messageListSortOrder; }
+            set
+            {
+                this._messageListSortOrder = value;
+                NotifyOfPropertyChange(() => this.MessageListSortOrder);
+            }
+        }
+
+        public string Theme
+        {
+            get
+            {
+                return this._theme;
+            }
+            set
+            {
+                this._theme = value;
+                NotifyOfPropertyChange(() => this.Theme);
             }
         }
 
@@ -107,6 +142,19 @@ namespace Papercut.ViewModels
             }
         }
 
+        public bool MinimizeToTray
+        {
+            get
+            {
+                return this._minimizeToTray;
+            }
+            set
+            {
+                this._minimizeToTray = value;
+                NotifyOfPropertyChange(() => MinimizeToTray);
+            }
+        }
+
         public bool StartMinimized
         {
             get { return _startMinimized; }
@@ -119,13 +167,13 @@ namespace Papercut.ViewModels
 
         public ObservableCollection<string> IPs { get; private set; }
 
+        public ObservableCollection<string> SortOrders { get; private set; }
+
+        public ObservableCollection<string> Themes { get; private set; }
+
         public void Load()
         {
-            _ip = Settings.Default.IP;
-            _port = Settings.Default.Port;
-            _startMinimized = Settings.Default.StartMinimized;
-            _minimizeOnClose = Settings.Default.MinimizeOnClose;
-            _runOnStartup = Settings.Default.RunOnStartup;
+            Settings.Default.CopyTo(this);
         }
 
         static IList<string> GetIPs()
@@ -144,16 +192,14 @@ namespace Papercut.ViewModels
 
         public void Save()
         {
-            Settings.Default.IP = IP;
-            Settings.Default.Port = Port;
+            var previousSettings = new Settings();
+            Settings.Default.CopyTo(previousSettings);
 
-            Settings.Default.RunOnStartup = RunOnStartup;
-            Settings.Default.StartMinimized = StartMinimized;
-            Settings.Default.MinimizeOnClose = MinimizeOnClose;
+            this.CopyTo(Settings.Default);
 
             Settings.Default.Save();
 
-            _publishEvent.Publish(new SettingsUpdatedEvent());
+            this._messageBus.Publish(new SettingsUpdatedEvent(previousSettings));
 
             TryClose(true);
         }

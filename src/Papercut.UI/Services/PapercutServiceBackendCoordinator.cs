@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,20 +23,23 @@ namespace Papercut.Services
     using System.Reactive.Disposables;
     using System.Reactive.Linq;
 
-    using Papercut.Core.Events;
-    using Papercut.Core.Network;
+    using Papercut.Common.Domain;
+    using Papercut.Core.Domain.Network.Smtp;
+    using Papercut.Core.Domain.Rules;
+    using Papercut.Core.Infrastructure.Lifecycle;
+    using Papercut.Core.Infrastructure.Network;
     using Papercut.Events;
     using Papercut.Network;
     using Papercut.Properties;
 
     using Serilog;
 
-    public class PapercutServiceBackendCoordinator : IHandleEvent<PapercutClientPreStartEvent>,
-        IHandleEvent<SettingsUpdatedEvent>,
-        IHandleEvent<RulesUpdatedEvent>,
-        IHandleEvent<PapercutServicePreStartEvent>,
-        IHandleEvent<PapercutServiceReadyEvent>,
-        IHandleEvent<PapercutServiceExitEvent>
+    public class PapercutServiceBackendCoordinator : IEventHandler<PapercutClientPreStartEvent>,
+        IEventHandler<SettingsUpdatedEvent>,
+        IEventHandler<RulesUpdatedEvent>,
+        IEventHandler<PapercutServicePreStartEvent>,
+        IEventHandler<PapercutServiceReadyEvent>,
+        IEventHandler<PapercutServiceExitEvent>
     {
         const string BackendServiceFailureMessage =
             "Papercut Backend Service Exception Attempting to Contact";
@@ -45,7 +48,7 @@ namespace Papercut.Services
 
         readonly Func<PapercutClient> _papercutClientFactory;
 
-        readonly IPublishEvent _publishEvent;
+        readonly IMessageBus _messageBus;
 
         readonly SmtpServerCoordinator _smtpServerCoordinator;
 
@@ -53,12 +56,12 @@ namespace Papercut.Services
 
         public PapercutServiceBackendCoordinator(
             ILogger logger,
-            IPublishEvent publishEvent,
+            IMessageBus messageBus,
             Func<PapercutClient> papercutClientFactory,
             SmtpServerCoordinator smtpServerCoordinator)
         {
             _logger = logger;
-            _publishEvent = publishEvent;
+            this._messageBus = messageBus;
             _papercutClientFactory = papercutClientFactory;
             _smtpServerCoordinator = smtpServerCoordinator;
 
@@ -111,6 +114,9 @@ namespace Papercut.Services
         {
             if (!IsBackendServiceOnline) return;
 
+            // check if the setting changed
+            if (@event.PreviousSettings.IP == @event.NewSettings.IP && @event.PreviousSettings.Port == @event.NewSettings.Port) return;
+
             try
             {
                 using (PapercutClient client = GetClient())
@@ -158,7 +164,7 @@ namespace Papercut.Services
                             "Background Process Returned {@Event} -- Publishing",
                             exchangeEvent);
 
-                        _publishEvent.Publish(exchangeEvent);
+                        this._messageBus.Publish(exchangeEvent);
                     }
                 }
             }

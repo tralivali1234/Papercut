@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,10 +33,11 @@ namespace Papercut.ViewModels
 
     using Caliburn.Micro;
 
+    using Papercut.Common.Domain;
+    using Papercut.Common.Extensions;
+    using Papercut.Common.Helper;
     using Papercut.Core.Annotations;
-    using Papercut.Core.Events;
-    using Papercut.Core.Helper;
-    using Papercut.Core.Message;
+    using Papercut.Core.Domain.Message;
     using Papercut.Events;
     using Papercut.Helpers;
     using Papercut.Message;
@@ -48,7 +49,7 @@ namespace Papercut.ViewModels
     using KeyEventArgs = System.Windows.Input.KeyEventArgs;
     using Screen = Caliburn.Micro.Screen;
 
-    public class MessageListViewModel : Screen
+    public class MessageListViewModel : Screen, IHandle<SettingsUpdatedEvent>
     {
         readonly object _deleteLockObject = new object();
 
@@ -60,7 +61,7 @@ namespace Papercut.ViewModels
 
         readonly MimeMessageLoader _mimeMessageLoader;
 
-        readonly IPublishEvent _publishEvent;
+        readonly IMessageBus _messageBus;
 
         bool _isLoading;
 
@@ -68,7 +69,7 @@ namespace Papercut.ViewModels
             MessageRepository messageRepository,
             [NotNull] MessageWatcher messageWatcher,
             MimeMessageLoader mimeMessageLoader,
-            IPublishEvent publishEvent,
+            IMessageBus messageBus,
             ILogger logger)
         {
             if (messageRepository == null)
@@ -77,13 +78,13 @@ namespace Papercut.ViewModels
                 throw new ArgumentNullException(nameof(messageWatcher));
             if (mimeMessageLoader == null)
                 throw new ArgumentNullException(nameof(mimeMessageLoader));
-            if (publishEvent == null)
-                throw new ArgumentNullException(nameof(publishEvent));
+            if (messageBus == null)
+                throw new ArgumentNullException(nameof(messageBus));
 
             _messageRepository = messageRepository;
             _messageWatcher = messageWatcher;
             _mimeMessageLoader = mimeMessageLoader;
-            _publishEvent = publishEvent;
+            this._messageBus = messageBus;
             _logger = logger;
 
             SetupMessages();
@@ -131,8 +132,10 @@ namespace Papercut.ViewModels
         {
             Messages = new ObservableCollection<MimeMessageEntry>();
             MessagesSorted = CollectionViewSource.GetDefaultView(Messages);
-            MessagesSorted.SortDescriptions.Add(
-                new SortDescription("ModifiedDate", ListSortDirection.Ascending));
+
+            ListSortDirection sortOrder;
+            Enum.TryParse<ListSortDirection>(Settings.Default.MessageListSortOrder, out sortOrder);
+            MessagesSorted.SortDescriptions.Add(new SortDescription("ModifiedDate", sortOrder));
 
             // Begin listening for new messages
             _messageWatcher.NewMessage += NewMessage;
@@ -184,7 +187,7 @@ namespace Papercut.ViewModels
             observable.ObserveOnDispatcher().Subscribe(
                 message =>
                 {
-                    _publishEvent.Publish(
+                    this._messageBus.Publish(
                         new ShowBallonTip(
                             3500,
                             "New Message Received",
@@ -280,7 +283,7 @@ namespace Papercut.ViewModels
                 if (failedEntries.Any())
                 {
                     // show errors...
-                    _publishEvent.Publish(
+                    this._messageBus.Publish(
                         new ShowMessageEvent(
                             string.Join("\r\n", failedEntries),
                             $"Failed to Delete Message{(failedEntries.Count() > 1 ? "s" : string.Empty)}"));
@@ -315,6 +318,14 @@ namespace Papercut.ViewModels
             MessagesSorted.Refresh();
 
             ValidateSelected();
+        }
+
+        public void Handle(SettingsUpdatedEvent message)
+        {
+            ListSortDirection sortOrder;
+            Enum.TryParse<ListSortDirection>(Settings.Default.MessageListSortOrder, out sortOrder);
+            MessagesSorted.SortDescriptions.Clear();
+            MessagesSorted.SortDescriptions.Add(new SortDescription("ModifiedDate", sortOrder));
         }
     }
 }

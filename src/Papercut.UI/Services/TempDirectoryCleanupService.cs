@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,12 +20,13 @@ namespace Papercut.Services
     using System;
     using System.IO;
 
-    using Papercut.Core.Configuration;
-    using Papercut.Core.Events;
+    using Papercut.Common.Domain;
+    using Papercut.Core.Domain.Application;
+    using Papercut.Core.Infrastructure.Lifecycle;
 
     using Serilog;
 
-    public class TempDirectoryCleanupService : IHandleEvent<PapercutClientExitEvent>
+    public class TempDirectoryCleanupService : IEventHandler<PapercutClientExitEvent>
     {
         readonly IAppMeta _appMeta;
 

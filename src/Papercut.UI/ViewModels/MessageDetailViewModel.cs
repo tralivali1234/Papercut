@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,13 +20,14 @@ namespace Papercut.ViewModels
     using System;
     using System.Linq;
     using System.Reactive.Linq;
+    using System.Text;
 
     using Caliburn.Micro;
 
     using MimeKit;
 
-    using Papercut.Core.Helper;
-    using Papercut.Core.Message;
+    using Papercut.Common.Extensions;
+    using Papercut.Core.Domain.Message;
     using Papercut.Helpers;
     using Papercut.Message;
     using Papercut.Message.Helpers;
@@ -265,18 +266,18 @@ namespace Papercut.ViewModels
                 var parts = mailMessageEx.BodyParts.OfType<MimePart>().ToList();
                 var mainBody = parts.GetMainBodyTextPart();
 
-                From = mailMessageEx.From.IfNotNull(s => s.ToString()) ?? string.Empty;
-                To = mailMessageEx.To.IfNotNull(s => s.ToString()) ?? string.Empty;
-                CC = mailMessageEx.Cc.IfNotNull(s => s.ToString()) ?? string.Empty;
-                Bcc = mailMessageEx.Bcc.IfNotNull(s => s.ToString()) ?? string.Empty;
-                Date = mailMessageEx.Date.IfNotNull(s => s.ToString()) ?? string.Empty;
+                From = mailMessageEx.From?.ToString() ?? string.Empty;
+                To = mailMessageEx.To?.ToString() ?? string.Empty;
+                CC = mailMessageEx.Cc?.ToString() ?? string.Empty;
+                Bcc = mailMessageEx.Bcc?.ToString() ?? string.Empty;
+                Date = mailMessageEx.Date.ToString();
                 Subject = mailMessageEx.Subject ?? string.Empty;
                 
                 AttachmentCount = parts.GetAttachments().Count();
                 RawViewModel.MimeMessage = mailMessageEx;
                 PartsListViewModel.MimeMessage = mailMessageEx;
 
-                BodyViewModel.Body = mainBody != null ? mainBody.Text : string.Empty;
+                BodyViewModel.Body = mainBody != null ? mainBody.GetText(Encoding.UTF8) : string.Empty;
 
                 if (mainBody != null) {
                     IsHtml = mainBody.IsContentHtml();
@@ -286,7 +287,7 @@ namespace Papercut.ViewModels
                     {
                         var textPartNotHtml = parts.OfType<TextPart>().Except(new[] { mainBody }).FirstOrDefault();
                         if (textPartNotHtml != null)
-                            TextBody = textPartNotHtml.Text;
+                            TextBody = textPartNotHtml.GetText(Encoding.UTF8);
                     }
                 }
             }

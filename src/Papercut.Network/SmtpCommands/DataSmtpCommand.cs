@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,11 +20,11 @@ namespace Papercut.Network.SmtpCommands
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Threading.Tasks;
 
-    using Papercut.Core.Helper;
-    using Papercut.Core.Message;
-    using Papercut.Core.Network;
+    using Papercut.Core.Domain.Message;
+    using Papercut.Network.Protocols;
 
     using Serilog;
 
@@ -55,7 +55,7 @@ namespace Papercut.Network.SmtpCommands
             }
 
             List<string> data;
-            Task<int> confirmation;
+            Task confirmation;
 
             try
             {
@@ -78,6 +78,8 @@ namespace Papercut.Network.SmtpCommands
                     });
 
                 confirmation = Connection.SendLine("250 OK");
+
+                _receivedDataHandler.HandleReceived(string.Join(Environment.NewLine, data), Session.Recipients.ToArray(), Connection.Encoding);
             }
             catch (IOException e)
             {
@@ -86,7 +88,6 @@ namespace Papercut.Network.SmtpCommands
                 return;
             }
 
-            _receivedDataHandler.HandleReceived(string.Join(Environment.NewLine, data), Session.Recipients);
             confirmation.Wait();
         }
     }

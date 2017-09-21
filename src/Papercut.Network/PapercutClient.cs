@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,8 +20,9 @@ namespace Papercut.Network
     using System;
     using System.Net.Sockets;
 
-    using Papercut.Core.Events;
-    using Papercut.Core.Helper;
+    using Papercut.Common.Domain;
+    using Papercut.Common.Extensions;
+    using Papercut.Core.Infrastructure.Json;
     using Papercut.Network.Protocols;
 
     using Serilog;
@@ -68,7 +69,7 @@ namespace Papercut.Network
             }
         }
 
-        public bool ExchangeEventServer<TEvent>(ref TEvent @event) where TEvent : IDomainEvent
+        public bool ExchangeEventServer<TEvent>(ref TEvent @event) where TEvent : IEvent
         {
             try
             {
@@ -113,7 +114,7 @@ namespace Papercut.Network
             }
         }
 
-        public bool PublishEventServer<TEvent>(TEvent @event) where TEvent : IDomainEvent
+        public bool PublishEventServer<TEvent>(TEvent @event) where TEvent : IEvent
         {
             try
             {
@@ -150,7 +151,7 @@ namespace Papercut.Network
         bool HandlePublishEvent<TEvent>(
             NetworkStream stream,
             TEvent @event,
-            ProtocolCommandType protocolCommandType) where TEvent : IDomainEvent
+            ProtocolCommandType protocolCommandType) where TEvent : IEvent
         {
             string response = stream.ReadString().Trim();
 

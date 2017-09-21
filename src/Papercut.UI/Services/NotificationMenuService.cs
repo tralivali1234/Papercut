@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,16 +24,17 @@ namespace Papercut.Services
     using System.Reactive.Subjects;
     using System.Windows.Forms;
 
-    using Papercut.Core.Events;
+    using Papercut.Common.Domain;
+    using Papercut.Core.Infrastructure.Lifecycle;
     using Papercut.Events;
 
     using Disposable = Autofac.Util.Disposable;
 
     public class NotificationMenuService : Disposable,
-        IHandleEvent<PapercutClientReadyEvent>,
-        IHandleEvent<ShowBallonTip>
+        IEventHandler<PapercutClientReadyEvent>,
+        IEventHandler<ShowBallonTip>
     {
-        readonly IPublishEvent _publishEvent;
+        readonly IMessageBus _messageBus;
 
         readonly AppResourceLocator _resourceLocator;
             
@@ -43,10 +44,10 @@ namespace Papercut.Services
 
         public NotificationMenuService(
             AppResourceLocator resourceLocator,
-            IPublishEvent publishEvent)
+            IMessageBus messageBus)
         {
             _resourceLocator = resourceLocator;
-            _publishEvent = publishEvent;
+            this._messageBus = messageBus;
             _notificationSubject = new Subject<ShowBallonTip>();
 
             InitObservables();
@@ -97,15 +98,15 @@ namespace Papercut.Services
             };
 
             _notification.Click +=
-                (sender, args) => _publishEvent.Publish(new ShowMainWindowEvent());
+                (sender, args) => this._messageBus.Publish(new ShowMainWindowEvent());
 
             _notification.BalloonTipClicked +=
                 (sender, args) =>
-                _publishEvent.Publish(new ShowMainWindowEvent { SelectMostRecentMessage = true });
+                this._messageBus.Publish(new ShowMainWindowEvent { SelectMostRecentMessage = true });
 
             var options = new MenuItem(
                 "Options",
-                (sender, args) => _publishEvent.Publish(new ShowOptionWindowEvent()))
+                (sender, args) => this._messageBus.Publish(new ShowOptionWindowEvent()))
             {
                 DefaultItem = false,
             };
@@ -114,14 +115,14 @@ namespace Papercut.Services
             {
                 new MenuItem(
                     "Show",
-                    (sender, args) => _publishEvent.Publish(new ShowMainWindowEvent()))
+                    (sender, args) => this._messageBus.Publish(new ShowMainWindowEvent()))
                 {
                     DefaultItem = true
                 },
                 options,
                 new MenuItem(
                     "Exit",
-                    (sender, args) => _publishEvent.Publish(new AppForceShutdownEvent()))
+                    (sender, args) => this._messageBus.Publish(new AppForceShutdownEvent()))
             };
 
             _notification.ContextMenu = new ContextMenu(menuItems);

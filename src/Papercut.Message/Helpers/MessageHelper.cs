@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,8 +27,8 @@ namespace Papercut.Message.Helpers
 
     using MimeKit;
 
+    using Papercut.Common.Extensions;
     using Papercut.Core.Annotations;
-    using Papercut.Core.Helper;
 
     public static class MessageHelper
     {
@@ -58,7 +58,7 @@ namespace Papercut.Message.Helpers
                 ms.Seek(0, SeekOrigin.Begin);
                 var mail = ms.ToArray();
 
-                return Encoding.ASCII.GetString(mail, 0, mail.Length);
+                return Encoding.UTF8.GetString(mail, 0, mail.Length);
             }
         }
 

@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,9 +24,10 @@ namespace Papercut
 
     using Autofac;
 
+    using Papercut.Common.Domain;
     using Papercut.Core;
-    using Papercut.Core.Events;
-    using Papercut.Helpers;
+    using Papercut.Core.Infrastructure.Container;
+    using Papercut.Core.Infrastructure.Lifecycle;
 
     using Serilog;
 
@@ -47,9 +48,10 @@ namespace Papercut
 
         public ILifetimeScope Container => _lifetimeScope.Value;
 
+
         protected override void OnStartup(StartupEventArgs e)
         {
-            var publishEvent = Container.Resolve<IPublishEvent>();
+            var publishEvent = Container.Resolve<IMessageBus>();
 
             try
             {
@@ -81,7 +83,7 @@ namespace Papercut
 
             using (Container)
             {
-                Container.Resolve<IPublishEvent>().Publish(new PapercutClientExitEvent());
+                Container.Resolve<IMessageBus>().Publish(new PapercutClientExitEvent());
             }
 
             _lifetimeScope = null;

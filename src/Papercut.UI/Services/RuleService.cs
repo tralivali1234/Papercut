@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,23 +24,24 @@ namespace Papercut.Services
     using System.Reactive.Concurrency;
     using System.Reactive.Linq;
 
-    using Papercut.Core.Events;
-    using Papercut.Core.Message;
-    using Papercut.Core.Rules;
+    using Papercut.Common.Domain;
+    using Papercut.Core.Domain.Message;
+    using Papercut.Core.Domain.Rules;
+    using Papercut.Core.Infrastructure.Lifecycle;
     using Papercut.Message;
     using Papercut.Rules;
 
     using Serilog;
 
     public class RuleService : RuleServiceBase,
-        IHandleEvent<PapercutClientReadyEvent>,
-        IHandleEvent<PapercutClientExitEvent>
+        IEventHandler<PapercutClientReadyEvent>,
+        IEventHandler<PapercutClientExitEvent>
     {
         readonly PapercutServiceBackendCoordinator _coordinator;
 
         readonly MessageWatcher _messageWatcher;
 
-        readonly IPublishEvent _publishEvent;
+        readonly IMessageBus _messageBus;
 
         readonly IRulesRunner _rulesRunner;
 
@@ -50,13 +51,13 @@ namespace Papercut.Services
             PapercutServiceBackendCoordinator coordinator,
             MessageWatcher messageWatcher,
             IRulesRunner rulesRunner,
-            IPublishEvent publishEvent)
+            IMessageBus messageBus)
             : base(ruleRespository, logger)
         {
             _coordinator = coordinator;
             _messageWatcher = messageWatcher;
             _rulesRunner = rulesRunner;
-            _publishEvent = publishEvent;
+            this._messageBus = messageBus;
         }
 
         public void Handle(PapercutClientExitEvent @event)
@@ -85,7 +86,7 @@ namespace Papercut.Services
             }
 
             // rules loaded/updated event
-            _publishEvent.Publish(new RulesUpdatedEvent(Rules.ToArray()));
+            this._messageBus.Publish(new RulesUpdatedEvent(Rules.ToArray()));
 
             Rules.CollectionChanged += RuleCollectionChanged;
             HookPropertyChangedForRules(Rules);
@@ -107,7 +108,7 @@ namespace Papercut.Services
 
         void PublishUpdateEvent()
         {
-            _publishEvent.Publish(new RulesUpdatedEvent(Rules.ToArray()));
+            this._messageBus.Publish(new RulesUpdatedEvent(Rules.ToArray()));
         }
 
         void RuleCollectionChanged(object sender, NotifyCollectionChangedEventArgs args)

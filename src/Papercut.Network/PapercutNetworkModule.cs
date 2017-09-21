@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,8 +22,9 @@ namespace Papercut.Network
     using Autofac;
     using Autofac.Core;
 
-    using Papercut.Core.Network;
-    using Papercut.Core.Plugins;
+    using Papercut.Core.Domain.Network;
+    using Papercut.Core.Domain.Network.Smtp;
+    using Papercut.Core.Infrastructure.Plugins;
     using Papercut.Network.Protocols;
     using Papercut.Network.Smtp;
 

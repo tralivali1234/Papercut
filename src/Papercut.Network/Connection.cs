@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,15 +13,19 @@
 // distributed under the License is distributed on an "AS IS" BASIS,
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
-// limitations under the License.
+// limitations under the License. 
+
 
 namespace Papercut.Network
 {
     using System;
     using System.Net.Sockets;
+    using System.Text;
+    using System.Threading.Tasks;
 
+    using Papercut.Common.Helper;
     using Papercut.Core.Annotations;
-    using Papercut.Core.Network;
+    using Papercut.Core.Domain.Network;
 
     using Serilog;
 
@@ -62,22 +66,6 @@ namespace Papercut.Network
 
         #endregion
 
-        #region Public Properties
-
-        public IProtocol Protocol { get; protected set; }
-
-        public ILogger Logger { get; set; }
-
-        public Socket Client { get; protected set; }
-
-        public bool Connected { get; protected set; }
-
-        public int Id { get; protected set; }
-
-        public DateTime LastActivity { get; set; }
-
-        #endregion
-
         #region Public Methods and Operators
 
         public void Close(bool triggerEvent = true)
@@ -99,6 +87,24 @@ namespace Papercut.Network
 
         #endregion
 
+        #region Public Properties
+
+        public IProtocol Protocol { get; protected set; }
+
+        public ILogger Logger { get; set; }
+
+        public Socket Client { get; protected set; }
+
+        public bool Connected { get; protected set; }
+
+        public int Id { get; protected set; }
+
+        public DateTime LastActivity { get; set; }
+        
+        public Encoding Encoding { get; set; } = Encoding.UTF8;
+
+        #endregion
+
         #region Methods
 
         protected void OnConnectionClosed(EventArgs e)
@@ -113,27 +119,27 @@ namespace Papercut.Network
             try
             {
                 // Receive the rest of the data
-                int bytes = Client.EndReceive(result);
+                int sizeReceived = Client.EndReceive(result);
                 LastActivity = DateTime.Now;
 
                 // Ensure we received bytes
-                if (bytes <= 0 || (_receiveBuffer.Length == 64 && _receiveBuffer[0] == '\0'))
+                if (sizeReceived <= 0 || (_receiveBuffer.Length == 64 && _receiveBuffer[0] == '\0'))
                 {
                     // nothing received, close and return;
                     Close();
                     return false;
                 }
 
-                var incoming = new byte[bytes];
-                Array.Copy(_receiveBuffer, incoming, bytes);
-                Protocol.ProcessIncomingBuffer(incoming);
+                var incoming = new byte[sizeReceived];
+                Array.Copy(_receiveBuffer, incoming, sizeReceived);
+                Protocol.ProcessIncomingBuffer(incoming, Encoding);
 
                 // continue receiving...
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception exception)
             {
-                Logger.Warning(ex, "Failed to End Receive on Async Socket");
+                Logger.Warning(exception, "Failed to End Receive on Async Socket");
             }
 
             return false;
@@ -190,6 +196,28 @@ namespace Papercut.Network
             {
                 Logger.Error(ex, "Error in Connection.BeginReceive");
             }
+        }
+
+        public Task SendData(byte[] data)
+        {
+            if (!Connected || !Client.Connected) return TaskHelpers.FromResult(0);
+
+            // Use overload that takes an IAsyncResult directly
+            try
+            {
+                AsyncCallback nullOp = i => { };
+                IAsyncResult result = this.Client.BeginSend(data, 0, data.Length, SocketFlags.None, nullOp, null);
+                if (result != null)
+                {
+                    return Task.Factory.FromAsync(result, r => this.Client.Connected ? this.Client.EndSend(r) : 0);
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+                // sometimes happens when the socket has already been closed.   
+            }
+
+            return TaskHelpers.FromResult(0);
         }
 
         #endregion

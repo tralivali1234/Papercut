@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,10 +21,12 @@ namespace Papercut.Service.Services
     using System.Reactive.Concurrency;
     using System.Reactive.Linq;
 
-    using Papercut.Core.Configuration;
-    using Papercut.Core.Events;
-    using Papercut.Core.Network;
-    using Papercut.Core.Settings;
+    using Papercut.Common.Domain;
+    using Papercut.Core.Domain.Application;
+    using Papercut.Core.Domain.Network;
+    using Papercut.Core.Domain.Network.Smtp;
+    using Papercut.Core.Domain.Settings;
+    using Papercut.Core.Infrastructure.Lifecycle;
     using Papercut.Network;
     using Papercut.Network.Protocols;
     using Papercut.Network.Smtp;
@@ -32,7 +34,7 @@ namespace Papercut.Service.Services
 
     using Serilog;
 
-    public class PapercutServerService : IHandleEvent<SmtpServerBindEvent>
+    public class PapercutServerService : IEventHandler<SmtpServerBindEvent>, IDisposable
     {
         readonly IAppMeta _applicationMetaData;
 
@@ -40,7 +42,7 @@ namespace Papercut.Service.Services
 
         readonly IServer _papercutServer;
 
-        readonly IPublishEvent _publishEvent;
+        readonly IMessageBus _messageBus;
 
         readonly PapercutServiceSettings _serviceSettings;
 
@@ -51,12 +53,12 @@ namespace Papercut.Service.Services
             PapercutServiceSettings serviceSettings,
             IAppMeta applicationMetaData,
             ILogger logger,
-            IPublishEvent publishEvent)
+            IMessageBus messageBus)
         {
             _serviceSettings = serviceSettings;
             _applicationMetaData = applicationMetaData;
             _logger = logger;
-            _publishEvent = publishEvent;
+            _messageBus = messageBus;
             _smtpServer = serverFactory(ServerProtocolType.Smtp);
             _papercutServer = serverFactory(ServerProtocolType.Papercut);
         }
@@ -84,7 +86,7 @@ namespace Papercut.Service.Services
 
         public void Start()
         {
-            _publishEvent.Publish(
+            this._messageBus.Publish(
                 new PapercutServicePreStartEvent { AppMeta = _applicationMetaData });
 
             _papercutServer.BindObservable(
@@ -120,15 +122,21 @@ namespace Papercut.Service.Services
                         _serviceSettings.Port),
                     // on complete
                     () =>
-                    _publishEvent.Publish(
+                    this._messageBus.Publish(
                         new PapercutServiceReadyEvent { AppMeta = _applicationMetaData }));
         }
 
         public void Stop()
         {
-            _smtpServer.Stop();
             _papercutServer.Stop();
-            _publishEvent.Publish(new PapercutServiceExitEvent { AppMeta = _applicationMetaData });
+            _smtpServer.Stop();
+            _messageBus.Publish(new PapercutServiceExitEvent { AppMeta = _applicationMetaData });
+        }
+
+        public void Dispose()
+        {
+            this._papercutServer?.Dispose();
+            this._smtpServer?.Dispose();
         }
     }
 }

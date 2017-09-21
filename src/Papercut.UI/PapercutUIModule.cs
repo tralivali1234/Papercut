@@ -1,7 +1,7 @@
 ﻿// Papercut
 // 
 // Copyright © 2008 - 2012 Ken Robertson
-// Copyright © 2013 - 2016 Jaben Cargman
+// Copyright © 2013 - 2017 Jaben Cargman
 //  
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,12 +24,11 @@ namespace Papercut
 
     using Caliburn.Micro;
 
+    using Papercut.Common.Domain;
     using Papercut.Core;
-    using Papercut.Core.Configuration;
-    using Papercut.Core.Events;
-    using Papercut.Core.Helper;
-    using Papercut.Core.Message;
-    using Papercut.Core.Plugins;
+    using Papercut.Core.Domain.Application;
+    using Papercut.Core.Infrastructure.Container;
+    using Papercut.Core.Infrastructure.Plugins;
     using Papercut.Events;
     using Papercut.Helpers;
     using Papercut.Message;
@@ -60,7 +59,7 @@ namespace Papercut
             builder.RegisterType<EventAggregator>()
                 .As<IEventAggregator>()
                 .InstancePerLifetimeScope();
-            builder.RegisterType<EventPublishAll>().As<IPublishEvent>().InstancePerLifetimeScope();
+            builder.RegisterType<EventPublishAll>().As<IMessageBus>().InstancePerLifetimeScope();
 
             builder.RegisterType<SettingPathTemplateProvider>()
                 .AsImplementedInterfaces()
